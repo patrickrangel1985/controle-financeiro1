@@ -126,7 +126,7 @@
 
                 <!-- User Account / Login Button -->
                 <div id="auth-header-container">
-                    <button id="btn-open-login" onclick="openAuthModal()" class="px-3 py-2 text-xs sm:text-sm font-medium rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition flex items-center gap-2 shadow-sm">
+                    <button id="btn-open-login" onclick="openAuthModal()" class="px-3 py-2 text-xs sm:text-sm font-medium rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition flex items-center gap-2 shadow-sm cursor-pointer">
                         <i class="fa-solid fa-user-check"></i>
                         <span>Entrar / Cadastrar</span>
                     </button>
@@ -446,7 +446,7 @@
 
     <!-- MODAL: AUTHENTICATION / LOGIN -->
     <div id="modal-auth" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-md p-4">
-        <div class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 w-full max-w-md p-6 shadow-2xl space-y-5">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 w-full max-w-md p-6 shadow-2xl space-y-4">
             <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 pb-3">
                 <div class="flex items-center gap-2">
                     <i class="fa-solid fa-user-lock text-emerald-500 text-lg"></i>
@@ -457,8 +457,17 @@
                 </button>
             </div>
 
+            <!-- Firebase Info Banner -->
+            <div class="p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-xs text-amber-700 dark:text-amber-300 flex items-start gap-2.5">
+                <i class="fa-solid fa-cloud text-amber-500 text-sm mt-0.5 flex-shrink-0"></i>
+                <div>
+                    <p class="font-semibold">Sincronização em Nuvem</p>
+                    <p class="text-[11px] opacity-90 mt-0.5">Para salvar online no seu GitHub Pages, certifique-se de configurar sua <code class="bg-amber-500/20 px-1 py-0.5 rounded">apiKey</code> real no <code class="bg-amber-500/20 px-1 py-0.5 rounded">index.html</code>.</p>
+                </div>
+            </div>
+
             <!-- Login Google Button -->
-            <button onclick="handleGoogleLogin()" class="w-full py-2.5 px-4 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-100 font-medium text-xs sm:text-sm flex items-center justify-center gap-3 transition shadow-sm">
+            <button onclick="handleGoogleLogin()" class="w-full py-2.5 px-4 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-100 font-medium text-xs sm:text-sm flex items-center justify-center gap-3 transition shadow-sm cursor-pointer">
                 <svg class="w-4 h-4" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                     <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -646,21 +655,24 @@
         let categoryChartInstance = null;
         let pendingConfirmCallback = null;
 
-        function openAuthModal() {
-            document.getElementById('modal-auth').classList.remove('hidden');
-        }
+        // Explicitly expose modal triggers to window scope
+        window.openAuthModal = function() {
+            const modal = document.getElementById('modal-auth');
+            if (modal) modal.classList.remove('hidden');
+        };
 
-        function closeAuthModal() {
-            document.getElementById('modal-auth').classList.add('hidden');
-        }
+        window.closeAuthModal = function() {
+            const modal = document.getElementById('modal-auth');
+            if (modal) modal.classList.add('hidden');
+        };
 
-        function setAuthMode(mode) {
+        window.setAuthMode = function(mode) {
             activeAuthAction = mode;
-        }
+        };
 
         async function handleGoogleLogin() {
             if (!auth || !window.FirebaseCore) {
-                showCustomAlert('Aviso', 'O serviço da nuvem não está conectado no momento.', true);
+                showCustomAlert('Modo Local Ativo', 'O Firebase não está conectado com uma API Key válida. Insira suas credenciais reais no index.html para ativar a nuvem.', true);
                 return;
             }
             const { signInWithPopup, GoogleAuthProvider } = window.FirebaseCore;
@@ -671,14 +683,22 @@
                 showCustomAlert('Bem-vindo!', 'Login realizado com sucesso via Google.');
             } catch (err) {
                 console.error('Google Auth Error:', err);
-                showCustomAlert('Erro de Login', err.message || 'Falha ao autenticar com Google.', true);
+                let msg = 'Falha ao autenticar com Google.';
+                if (err.code === 'auth/api-key-not-valid' || err.code === 'auth/invalid-api-key') {
+                    msg = 'A Chave de API do Firebase utilizada no código é inválida ou pertence a um projeto não configurado. Por favor, insira sua API Key real no index.html.';
+                } else if (err.code === 'auth/unauthorized-domain') {
+                    msg = 'O domínio do seu site (GitHub Pages) ainda não foi autorizado no Firebase Console -> Authentication -> Settings -> Authorized Domains.';
+                } else if (err.message) {
+                    msg = err.message;
+                }
+                showCustomAlert('Erro no Login', msg, true);
             }
         }
 
         async function handleEmailAuth(e) {
             e.preventDefault();
             if (!auth || !window.FirebaseCore) {
-                showCustomAlert('Aviso', 'O serviço da nuvem não está conectado no momento.', true);
+                showCustomAlert('Modo Local Ativo', 'O Firebase não está conectado com uma API Key válida. Insira suas credenciais reais no index.html para ativar a nuvem.', true);
                 return;
             }
 
@@ -699,8 +719,9 @@
             } catch (err) {
                 console.error('Email Auth Error:', err);
                 let msg = 'Erro de autenticação.';
-                if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') msg = 'E-mail ou senha incorretos.';
+                if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') msg = 'E-mail ou senha incorretos.';
                 if (err.code === 'auth/email-already-in-use') msg = 'Este e-mail já está cadastrado no sistema.';
+                if (err.code === 'auth/api-key-not-valid' || err.code === 'auth/invalid-api-key') msg = 'Chave de API do Firebase inválida no index.html.';
                 showCustomAlert('Erro no Acesso', msg, true);
             }
         }
@@ -722,12 +743,12 @@
             const userEmailDisplay = document.getElementById('user-email-display');
 
             if (user && !user.isAnonymous) {
-                btnOpenLogin.classList.add('hidden');
-                userProfileBadge.classList.remove('hidden');
-                userEmailDisplay.innerText = user.email || user.displayName || 'Usuário Conectado';
+                if (btnOpenLogin) btnOpenLogin.classList.add('hidden');
+                if (userProfileBadge) userProfileBadge.classList.remove('hidden');
+                if (userEmailDisplay) userEmailDisplay.innerText = user.email || user.displayName || 'Usuário Conectado';
             } else {
-                btnOpenLogin.classList.remove('hidden');
-                userProfileBadge.classList.add('hidden');
+                if (btnOpenLogin) btnOpenLogin.classList.remove('hidden');
+                if (userProfileBadge) userProfileBadge.classList.add('hidden');
             }
         }
 
@@ -797,19 +818,23 @@
 
             const appId = typeof __app_id !== 'undefined' ? __app_id : 'controle-financeiro1';
 
-           const firebaseConfig = {
-  apiKey: "AIzaSyBE4ZWlHd6JLGTdUiQn7qyW3-iA5P4TflU",
-  authDomain: "controle-financeiro1-4a35e.firebaseapp.com",
-  projectId: "controle-financeiro1-4a35e",
-  storageBucket: "controle-financeiro1-4a35e.firebasestorage.app"",
+            const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+                apiKey: "AIzaSyBE4ZWLHd6JLGTdUiQn7qyW3-iA5P4TflU",
+                authDomain: "controle-financeiro1-4a35e.firebaseapp.com",
+                projectId: "controle-financeiro1-4a35e",
+                storageBucket: "controle-financeiro1-4a35e.firebasestorage.app",
                 messagingSenderId: "1031607272661",
                 appId: "1:1031607272661:web:5debe641f43261f8e20e5c"
             };
 
-            if (!firebaseConfig) {
-                updateCloudStatus('offline', 'Modo Local');
-                return;
-            }
+            // Connection timeout guard (2.5 seconds max before falling back to Local Mode)
+            let authResolved = false;
+            const timeoutGuard = setTimeout(() => {
+                if (!authResolved) {
+                    console.warn("Firebase Auth connection timed out or key invalid. Falling back to Local Mode.");
+                    updateCloudStatus('offline', 'Modo Local');
+                }
+            }, 2500);
 
             try {
                 const app = initializeApp(firebaseConfig);
@@ -817,19 +842,31 @@
                 db = getFirestore(app);
 
                 onAuthStateChanged(auth, (user) => {
+                    authResolved = true;
+                    clearTimeout(timeoutGuard);
                     if (user) {
                         currentUserId = user.uid;
                         updateAuthUserUI(user);
                         updateCloudStatus('online', user.isAnonymous ? 'Nuvem Ativa' : 'Conta Conectada');
                         setupFirestoreListener(appId, currentUserId);
                     } else {
-                        // If no user logged in, perform anonymous sign in so the app remains usable
-                        signInAnonymously(auth).catch(console.error);
                         updateAuthUserUI(null);
-                        updateCloudStatus('offline', 'Modo Local');
+                        signInAnonymously(auth).then(() => {
+                            updateCloudStatus('online', 'Nuvem Ativa');
+                        }).catch((err) => {
+                            console.warn("Anonymous sign in error (API Key may be dummy/invalid):", err);
+                            updateCloudStatus('offline', 'Modo Local');
+                        });
                     }
+                }, (err) => {
+                    authResolved = true;
+                    clearTimeout(timeoutGuard);
+                    console.warn("Auth state error:", err);
+                    updateCloudStatus('offline', 'Modo Local');
                 });
             } catch (err) {
+                authResolved = true;
+                clearTimeout(timeoutGuard);
                 console.warn('Firebase sync offline fallback:', err);
                 updateCloudStatus('offline', 'Modo Local');
             }
@@ -859,7 +896,7 @@
                 }
             }, (error) => {
                 console.error("Firestore sync error:", error);
-                updateCloudStatus('error', 'Erro Nuvem');
+                updateCloudStatus('offline', 'Modo Local');
             });
         }
 
@@ -878,7 +915,7 @@
                 updateCloudStatus('online', 'Salvo na Nuvem');
             } catch (err) {
                 console.error('Error saving to cloud:', err);
-                updateCloudStatus('error', 'Erro ao salvar');
+                updateCloudStatus('offline', 'Modo Local');
             }
         }
 
@@ -892,16 +929,16 @@
 
             if (status === 'online') {
                 badge.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 transition';
-                ping.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75';
-                dot.className = 'relative inline-flex rounded-full h-2 w-2 bg-emerald-500';
+                if (ping) ping.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75';
+                if (dot) dot.className = 'relative inline-flex rounded-full h-2 w-2 bg-emerald-500';
             } else if (status === 'saving') {
                 badge.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 transition';
-                ping.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75';
-                dot.className = 'relative inline-flex rounded-full h-2 w-2 bg-amber-500';
+                if (ping) ping.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75';
+                if (dot) dot.className = 'relative inline-flex rounded-full h-2 w-2 bg-amber-500';
             } else {
                 badge.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-500/10 text-slate-500 dark:text-slate-400 border border-slate-500/20 transition';
-                ping.className = 'hidden';
-                dot.className = 'relative inline-flex rounded-full h-2 w-2 bg-slate-400';
+                if (ping) ping.className = 'hidden';
+                if (dot) dot.className = 'relative inline-flex rounded-full h-2 w-2 bg-slate-400';
             }
         }
 
