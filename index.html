@@ -190,9 +190,11 @@
                 </div>
                 <div class="flex items-center space-x-2">
                     <span class="text-slate-400 dark:text-slate-500 text-sm font-semibold">R$</span>
-                    <input type="number" id="input-income" step="0.01" min="0" placeholder="0,00" 
+                    <input type="text" id="input-income" placeholder="0,00" 
                            class="w-full text-2xl font-bold bg-transparent border-b border-dashed border-slate-300 dark:border-slate-600 focus:border-emerald-500 focus:outline-none text-slate-900 dark:text-white transition py-0.5"
-                           onchange="updateIncome(this.value)" onkeyup="updateIncome(this.value)">
+                           onfocus="this.select()"
+                           onblur="this.value = formatNumberBR(appData.income)"
+                           oninput="updateIncome(this.value)">
                 </div>
                 <p class="text-xs text-slate-400 dark:text-slate-500 mt-2">Clique no valor para editar</p>
             </div>
@@ -655,6 +657,22 @@
         let categoryChartInstance = null;
         let pendingConfirmCallback = null;
 
+        // Formats number to Brazilian standard (e.g. 5.500,00)
+        function formatNumberBR(val) {
+            if (val === null || val === undefined || isNaN(val)) return '0,00';
+            return Number(val).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        // Parses Brazilian currency string or plain string to float
+        function parseBRCurrency(str) {
+            if (typeof str === 'number') return str;
+            if (!str) return 0;
+            // Clean thousand dots and swap comma to dot
+            let clean = str.toString().replace(/\./g, '').replace(',', '.');
+            let num = parseFloat(clean);
+            return isNaN(num) ? 0 : num;
+        }
+
         // Explicitly expose modal triggers to window scope
         window.openAuthModal = function() {
             const modal = document.getElementById('modal-auth');
@@ -819,12 +837,12 @@
             const appId = typeof __app_id !== 'undefined' ? __app_id : 'controle-financeiro1';
 
             const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-                apiKey: "AIzaSyBE4ZWlHd6JLGTdUiQn7qyW3-iA5P4TflU",
-  authDomain: "controle-financeiro1-4a35e.firebaseapp.com",
-  projectId: "controle-financeiro1-4a35e",
-  storageBucket: "controle-financeiro1-4a35e.firebasestorage.app",
-  messagingSenderId: "1031607272661",
-  appId: "1:1031607272661:web:5debe641f43261f8e20e5c"
+                apiKey: "AIzaSyBE4ZWLHd6JLGTdUiQn7qyW3-iA5P4TflU",
+                authDomain: "controle-financeiro1-4a35e.firebaseapp.com",
+                projectId: "controle-financeiro1-4a35e",
+                storageBucket: "controle-financeiro1-4a35e.firebasestorage.app",
+                messagingSenderId: "1031607272661",
+                appId: "1:1031607272661:web:5debe641f43261f8e20e5c"
             };
 
             // Connection timeout guard (2.5 seconds max before falling back to Local Mode)
@@ -1012,8 +1030,8 @@
         });
 
         function updateIncome(val) {
-            const num = parseFloat(val);
-            appData.income = isNaN(num) ? 0 : num;
+            const num = parseBRCurrency(val);
+            appData.income = num;
             saveState();
         }
 
@@ -1218,7 +1236,10 @@
         }
 
         function updateSummaryCards() {
-            document.getElementById('input-income').value = appData.income || '';
+            const incomeInput = document.getElementById('input-income');
+            if (incomeInput && document.activeElement !== incomeInput) {
+                incomeInput.value = formatNumberBR(appData.income);
+            }
 
             const totalExpenses = appData.expenses.reduce((acc, curr) => acc + curr.amount, 0);
             document.getElementById('card-total-expenses').innerText = formatBRL(totalExpenses);
