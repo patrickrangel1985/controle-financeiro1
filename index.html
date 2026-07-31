@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FinanzDash - Controle Financeiro Pessoal</title>
+    <title>Minhas Finanças - Controle Financeiro Pessoal</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -106,7 +106,7 @@
                     <i class="fa-solid fa-wallet text-xl"></i>
                 </div>
                 <div>
-                    <h1 class="font-bold text-lg leading-tight tracking-tight text-slate-900 dark:text-white">FinanzDash</h1>
+                    <h1 class="font-bold text-lg leading-tight tracking-tight text-slate-900 dark:text-white">Minhas Finanças</h1>
                     <p class="text-xs text-slate-500 dark:text-slate-400">Gestão & Inteligência Financeira</p>
                 </div>
             </div>
@@ -443,7 +443,7 @@
 
     <!-- FOOTER -->
     <footer class="mt-auto border-t border-slate-200 dark:border-slate-800 py-4 px-4 text-center text-xs text-slate-400 dark:text-slate-500">
-        <p>FinanzDash &copy; 2026 - Controle Financeiro Inteligente. Sincronizado automaticamente na Nuvem.</p>
+        <p>Minhas Finanças &copy; 2026 - Controle Financeiro Inteligente. Sincronizado automaticamente na Nuvem.</p>
     </footer>
 
     <!-- MODAL: AUTHENTICATION / LOGIN -->
@@ -622,7 +622,8 @@
 
     <!-- APPLICATION JAVASCRIPT LOGIC -->
     <script>
-        const STORAGE_KEY = 'finanzdash_data_v1';
+        const STORAGE_KEY = 'minhas_financas_data_v1';
+        const OLD_STORAGE_KEY = 'finanzdash_data_v1';
 
         let db = null;
         let auth = null;
@@ -667,7 +668,6 @@
         function parseBRCurrency(str) {
             if (typeof str === 'number') return str;
             if (!str) return 0;
-            // Clean thousand dots and swap comma to dot
             let clean = str.toString().replace(/\./g, '').replace(',', '.');
             let num = parseFloat(clean);
             return isNaN(num) ? 0 : num;
@@ -837,7 +837,7 @@
             const appId = typeof __app_id !== 'undefined' ? __app_id : 'controle-financeiro1';
 
             const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-               apiKey: "AIzaSyBE4ZWlHd6JLGTdUiQn7qyW3-iA5P4TflU",
+                apiKey: "AIzaSyBE4ZWlHd6JLGTdUiQn7qyW3-iA5P4TflU",
   authDomain: "controle-financeiro1-4a35e.firebaseapp.com",
   projectId: "controle-financeiro1-4a35e",
   storageBucket: "controle-financeiro1-4a35e.firebasestorage.app",
@@ -845,7 +845,6 @@
   appId: "1:1031607272661:web:5debe641f43261f8e20e5c"
             };
 
-            // Connection timeout guard (2.5 seconds max before falling back to Local Mode)
             let authResolved = false;
             const timeoutGuard = setTimeout(() => {
                 if (!authResolved) {
@@ -968,7 +967,10 @@
 
         function loadState() {
             try {
-                const saved = localStorage.getItem(STORAGE_KEY);
+                let saved = localStorage.getItem(STORAGE_KEY);
+                if (!saved) {
+                    saved = localStorage.getItem(OLD_STORAGE_KEY);
+                }
                 if (saved) {
                     appData = JSON.parse(saved);
                 }
@@ -1453,7 +1455,7 @@
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
             const dlAnchorElem = document.createElement('a');
             dlAnchorElem.setAttribute("href", dataStr);
-            dlAnchorElem.setAttribute("download", `FinanzDash_Backup_${new Date().toISOString().split('T')[0]}.json`);
+            dlAnchorElem.setAttribute("download", `Minhas_Financas_Backup_${new Date().toISOString().split('T')[0]}.json`);
             dlAnchorElem.click();
         }
 
@@ -1468,7 +1470,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `Gastos_FinanzDash_${new Date().toISOString().split('T')[0]}.csv`;
+            a.download = `Gastos_Minhas_Financas_${new Date().toISOString().split('T')[0]}.csv`;
             a.click();
         }
 
@@ -1500,6 +1502,7 @@
                 'Esta ação apagará todas as suas despesas e configurações na nuvem e localmente. Deseja continuar?',
                 function() {
                     localStorage.removeItem(STORAGE_KEY);
+                    localStorage.removeItem(OLD_STORAGE_KEY);
                     appData = {
                         income: 0,
                         theme: 'dark',
